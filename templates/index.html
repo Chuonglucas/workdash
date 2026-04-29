@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>WorkDash</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="header">
+    <h1>WorkDash</h1>
+    <p>Tổng quan công việc</p>
+</div>
+
+<!-- 4 Metric Cards -->
+<div class="metric-grid">
+    <div class="card">
+        <p class="label">Tổng công việc</p>
+        <p class="value">{{ data.tong_cong_viec }}</p>
+    </div>
+    <div class="card">
+        <p class="label">Hoàn thành</p>
+        <p class="value green">{{ data.hoan_thanh }}</p>
+    </div>
+    <div class="card">
+        <p class="label">Đang làm</p>
+        <p class="value blue">{{ data.dang_lam }}</p>
+    </div>
+    <div class="card">
+        <p class="label">Tồn đọng</p>
+        <p class="value red">{{ data.ton_dong }}</p>
+    </div>
+</div>
+
+<!-- Biểu đồ -->
+<div class="table-wrap" style="margin-bottom: 24px;">
+    <h2>Tiến độ theo tuần</h2>
+    <canvas id="bieu-do" height="100"></canvas>
+</div>
+
+<!-- Bảng công việc -->
+<div class="table-wrap">
+    <h2>Danh sách công việc</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Tên công việc</th>
+                <th>Người phụ trách</th>
+                <th>Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cv in data.cong_viec %}
+            <tr>
+                <td>{{ cv.ten }}</td>
+                <td>{{ cv.nguoi }}</td>
+                <td>
+                    <span class="badge {{ cv.trang_thai | lower | replace(' ', '-') }}">
+                        {{ cv.trang_thai }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Nhận dữ liệu từ Python
+    const duLieu = {{ bieu_do | safe }};
+
+    // Vẽ biểu đồ
+    const ctx = document.getElementById('bieu-do').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: duLieu.nhan,
+            datasets: [
+                {
+                    label: 'Hoàn thành',
+                    data: duLieu.hoan_thanh,
+                    backgroundColor: '#22c55e',
+                    borderRadius: 6
+                },
+                {
+                    label: 'Đang làm',
+                    data: duLieu.dang_lam,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f0f0f0' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,99 @@
+css* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #f4f6f9;
+    padding: 24px;
+    color: #333;
+}
+
+.header {
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.header p {
+    color: #888;
+    margin-top: 4px;
+}
+
+/* 4 cards */
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.card .label {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.card .value {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.green { color: #22c55e; }
+.blue  { color: #3b82f6; }
+.red   { color: #ef4444; }
+
+/* Bảng */
+.table-wrap {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.table-wrap h2 {
+    font-size: 16px;
+    margin-bottom: 16px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+
+th {
+    color: #888;
+    font-weight: 500;
+}
+
+/* Badge trạng thái */
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.xong           { background: #dcfce7; color: #16a34a; }
+.đang-làm       { background: #dbeafe; color: #2563eb; }
+.chưa-bắt-đầu  { background: #f3f4f6; color: #6b7280; }
