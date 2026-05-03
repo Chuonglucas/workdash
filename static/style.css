@@ -97,3 +97,164 @@ th {
 .xong           { background: #dcfce7; color: #16a34a; }
 .đang-làm       { background: #dbeafe; color: #2563eb; }
 .chưa-bắt-đầu  { background: #f3f4f6; color: #6b7280; }
+/* Form thêm công việc */
+.form-them {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.form-them input,
+.form-them select {
+    padding: 10px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    flex: 1;
+    min-width: 160px;
+}
+
+.form-them input:focus,
+.form-them select:focus {
+    border-color: #3b82f6;
+}
+
+.form-them button {
+    padding: 10px 24px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.form-them button:hover {
+    background: #2563eb;
+}
+/* Nút hành động */
+.action-cell {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-doi, .btn-xoa {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-doi {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.btn-doi:hover {
+    background: #dbeafe;
+}
+
+.btn-xoa {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.btn-xoa:hover {
+    background: #fee2e2;
+}
+/* Thanh tìm kiếm */
+.tim-kiem-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#o-tim-kiem {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+}
+
+#o-tim-kiem:focus {
+    border-color: #3b82f6;
+}
+
+/* Nút lọc trạng thái */
+.bo-loc {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-loc {
+    padding: 6px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background: white;
+    font-size: 13px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.btn-loc:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.btn-loc.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+    font-weight: 600;
+}
+
+/* Số kết quả */
+.so-ket-qua {
+    font-size: 14px;
+    font-weight: 400;
+    color: #9ca3af;
+    margin-left: 6px;
+}
+/* Header có 2 cột */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+/* Trạng thái real-time */
+.realtime-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d1d5db;
+    display: inline-block;
+}
+
+.dot.online {
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+    animation: nhay 1.5s infinite;
+}
+
+@keyframes nhay {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}

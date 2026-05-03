@@ -8,105 +8,204 @@
 <body>
 
 <div class="header">
-    <h1>WorkDash</h1>
-    <p>Tổng quan công việc</p>
+    <div>
+        <h1>WorkDash</h1>
+        <p>Tổng quan công việc</p>
+    </div>
+    <!-- Trạng thái kết nối real-time -->
+    <div class="realtime-status">
+        <span class="dot" id="dot"></span>
+        <span id="trang-thai-ket-noi">Đang kết nối...</span>
+        <span id="cap-nhat-luc" style="color:#9ca3af; font-size:12px;"></span>
+    </div>
 </div>
 
-<!-- 4 Metric Cards -->
+<!-- 4 Metric Cards — thêm id để JavaScript cập nhật -->
 <div class="metric-grid">
     <div class="card">
         <p class="label">Tổng công việc</p>
-        <p class="value">{{ data.tong_cong_viec }}</p>
+        <p class="value" id="so-tong">{{ tong }}</p>
     </div>
     <div class="card">
         <p class="label">Hoàn thành</p>
-        <p class="value green">{{ data.hoan_thanh }}</p>
+        <p class="value green" id="so-hoan-thanh">{{ hoan_thanh }}</p>
     </div>
     <div class="card">
         <p class="label">Đang làm</p>
-        <p class="value blue">{{ data.dang_lam }}</p>
+        <p class="value blue" id="so-dang-lam">{{ dang_lam }}</p>
     </div>
     <div class="card">
         <p class="label">Tồn đọng</p>
-        <p class="value red">{{ data.ton_dong }}</p>
+        <p class="value red" id="so-ton-dong">{{ ton_dong }}</p>
     </div>
 </div>
 
-<!-- Biểu đồ -->
+<!-- Form thêm công việc -->
 <div class="table-wrap" style="margin-bottom: 24px;">
-    <h2>Tiến độ theo tuần</h2>
-    <canvas id="bieu-do" height="100"></canvas>
+    <h2>Thêm công việc mới</h2>
+    <form action="/them" method="POST" class="form-them">
+        <input type="text" name="ten" placeholder="Tên công việc..." required />
+        <input type="text" name="nguoi" placeholder="Người phụ trách..." required />
+        <select name="trang_thai">
+            <option value="Chưa bắt đầu">Chưa bắt đầu</option>
+            <option value="Đang làm">Đang làm</option>
+            <option value="Xong">Xong</option>
+        </select>
+        <button type="submit">+ Thêm</button>
+    </form>
+</div>
+
+<!-- Thanh tìm kiếm -->
+<div class="table-wrap" style="margin-bottom: 24px;">
+    <div class="tim-kiem-wrap">
+        <input type="text" id="o-tim-kiem"
+               placeholder="🔍 Tìm theo tên công việc hoặc người phụ trách..." />
+        <div class="bo-loc">
+            <button class="btn-loc active" data-trang-thai="">Tất cả</button>
+            <button class="btn-loc" data-trang-thai="Chưa bắt đầu">Chưa bắt đầu</button>
+            <button class="btn-loc" data-trang-thai="Đang làm">Đang làm</button>
+            <button class="btn-loc" data-trang-thai="Xong">Xong</button>
+        </div>
+    </div>
 </div>
 
 <!-- Bảng công việc -->
 <div class="table-wrap">
-    <h2>Danh sách công việc</h2>
+    <h2>Danh sách công việc
+        <span id="so-ket-qua" class="so-ket-qua"></span>
+    </h2>
     <table>
         <thead>
             <tr>
                 <th>Tên công việc</th>
                 <th>Người phụ trách</th>
                 <th>Trạng thái</th>
+                <th>Hành động</th>
             </tr>
         </thead>
-        <tbody>
-            {% for cv in data.cong_viec %}
-            <tr>
+        <tbody id="bang-cong-viec">
+            {% for cv in cong_viec %}
+            <tr id="hang-{{ cv.id }}">
                 <td>{{ cv.ten }}</td>
                 <td>{{ cv.nguoi }}</td>
                 <td>
-                    <span class="badge {{ cv.trang_thai | lower | replace(' ', '-') }}">
+                    <span class="badge {{ cv.trang_thai | lower | replace(' ', '-') }}"
+                          id="badge-{{ cv.id }}">
                         {{ cv.trang_thai }}
                     </span>
+                </td>
+                <td class="action-cell">
+                    <button class="btn-doi" onclick="doiTrangThai({{ cv.id }})">🔄 Đổi</button>
+                    <button class="btn-xoa" onclick="xoaCongViec({{ cv.id }})">🗑 Xóa</button>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    <p id="khong-co-ket-qua"
+       style="display:none; color:#888; padding:20px; text-align:center;">
+        Không tìm thấy công việc nào phù hợp.
+    </p>
 </div>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Nhận dữ liệu từ Python
-    const duLieu = {{ bieu_do | safe }};
+// ---- SSE: Lắng nghe dữ liệu real-time từ server ----
+const eventSource = new EventSource("/stream");
 
-    // Vẽ biểu đồ
-    const ctx = document.getElementById('bieu-do').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: duLieu.nhan,
-            datasets: [
-                {
-                    label: 'Hoàn thành',
-                    data: duLieu.hoan_thanh,
-                    backgroundColor: '#22c55e',
-                    borderRadius: 6
-                },
-                {
-                    label: 'Đang làm',
-                    data: duLieu.dang_lam,
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 6
-                }
-            ]
-        },
-        options: {
-            plugins: {
-                legend: { position: 'top' }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#f0f0f0' }
-                },
-                x: {
-                    grid: { display: false }
-                }
-            }
-        }
+eventSource.onopen = function () {
+    document.getElementById("dot").classList.add("online");
+    document.getElementById("trang-thai-ket-noi").textContent = "Real-time";
+};
+
+eventSource.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+
+    // Cập nhật 4 số metric
+    document.getElementById("so-tong").textContent        = data.tong;
+    document.getElementById("so-hoan-thanh").textContent  = data.hoan_thanh;
+    document.getElementById("so-dang-lam").textContent    = data.dang_lam;
+    document.getElementById("so-ton-dong").textContent    = data.ton_dong;
+
+    // Cập nhật thời gian cập nhật cuối
+    document.getElementById("cap-nhat-luc").textContent = "Cập nhật lúc " + data.thoi_gian;
+};
+
+eventSource.onerror = function () {
+    document.getElementById("dot").classList.remove("online");
+    document.getElementById("trang-thai-ket-noi").textContent = "Mất kết nối";
+};
+
+// ---- Tìm kiếm và lọc ----
+let tuKhoa    = "";
+let trangThai = "";
+
+document.getElementById("o-tim-kiem").addEventListener("input", function () {
+    tuKhoa = this.value;
+    timKiem();
+});
+
+document.querySelectorAll(".btn-loc").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        document.querySelectorAll(".btn-loc").forEach(b => b.classList.remove("active"));
+        this.classList.add("active");
+        trangThai = this.dataset.trangThai;
+        timKiem();
     });
+});
+
+async function timKiem() {
+    const url  = "/tim-kiem?q=" + encodeURIComponent(tuKhoa)
+               + "&trang_thai=" + encodeURIComponent(trangThai);
+    const res  = await fetch(url);
+    const data = await res.json();
+    hienThiBang(data);
+}
+
+function hienThiBang(ds) {
+    const bang     = document.getElementById("bang-cong-viec");
+    const thongBao = document.getElementById("khong-co-ket-qua");
+    const soKetQua = document.getElementById("so-ket-qua");
+
+    if (ds.length === 0) {
+        bang.innerHTML          = "";
+        thongBao.style.display  = "block";
+        soKetQua.textContent    = "";
+        return;
+    }
+
+    thongBao.style.display = "none";
+    soKetQua.textContent   = "(" + ds.length + " kết quả)";
+    bang.innerHTML = ds.map(function (cv) {
+        const cls = cv.trang_thai.toLowerCase().replace(/ /g, "-");
+        return `
+            <tr id="hang-${cv.id}">
+                <td>${cv.ten}</td>
+                <td>${cv.nguoi}</td>
+                <td>
+                    <span class="badge ${cls}" id="badge-${cv.id}">
+                        ${cv.trang_thai}
+                    </span>
+                </td>
+                <td class="action-cell">
+                    <button class="btn-doi" onclick="doiTrangThai(${cv.id})">🔄 Đổi</button>
+                    <button class="btn-xoa" onclick="xoaCongViec(${cv.id})">🗑 Xóa</button>
+                </td>
+            </tr>`;
+    }).join("");
+}
+
+async function doiTrangThai(id) {
+    const res  = await fetch("/doi-trang-thai/" + id, { method: "POST" });
+    const data = await res.json();
+    if (data.ok) { location.reload(); }
+}
+
+async function xoaCongViec(id) {
+    if (!confirm("Bạn chắc muốn xóa công việc này?")) return;
+    const res  = await fetch("/xoa/" + id, { method: "POST" });
+    const data = await res.json();
+    if (data.ok) { location.reload(); }
+}
 </script>
 
 </body>
