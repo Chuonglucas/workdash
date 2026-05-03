@@ -75,7 +75,31 @@
         <canvas id="bieu-do-tron" height="120"></canvas>
     </div>
 </div>
+<!-- Upload Excel/CSV -->
+<div class="table-wrap" style="margin-bottom: 24px;">
+    <h2>📂 Import từ Excel / CSV</h2>
+    <div class="upload-wrap">
+        <input type="file" id="chon-file" accept=".xlsx,.csv"
+               style="display:none" />
+        <button class="btn-upload" onclick="document.getElementById('chon-file').click()">
+            📁 Chọn file Excel / CSV
+        </button>
+        <span id="ten-file" style="font-size:13px; color:#6b7280;">
+            Chưa chọn file
+        </span>
 
+        <label class="label-checkbox">
+            <input type="checkbox" id="xoa-cu" />
+            Xóa dữ liệu cũ trước khi import
+        </label>
+
+        <button class="btn-import" id="btn-import"
+                onclick="importFile()" disabled>
+            ⬆ Import
+        </button>
+    </div>
+    <div id="ket-qua-upload" style="margin-top:12px; font-size:13px;"></div>
+</div>
 <!-- Form thêm công việc -->
 <div class="table-wrap" style="margin-bottom: 24px;">
     <h2>Thêm công việc mới</h2>
@@ -394,6 +418,50 @@ async function xoaCongViec(id) {
     if (data.ok) { location.reload(); }
 }
 
+// =============================================
+// UPLOAD FILE EXCEL/CSV
+// =============================================
+document.getElementById("chon-file").addEventListener("change", function () {
+    const file = this.files[0];
+    if (file) {
+        document.getElementById("ten-file").textContent    = file.name;
+        document.getElementById("btn-import").disabled = false;
+    }
+});
+
+async function importFile() {
+    const file   = document.getElementById("chon-file").files[0];
+    const xoaCu  = document.getElementById("xoa-cu").checked;
+    const ketQua = document.getElementById("ket-qua-upload");
+
+    if (!file) return;
+
+    // Hiển thị đang xử lý
+    ketQua.innerHTML = '<span style="color:#3b82f6;">⏳ Đang xử lý file...</span>';
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("xoa_cu", xoaCu ? "true" : "false");
+
+    try {
+        const res  = await fetch("/upload", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.ok) {
+            ketQua.innerHTML = `<span style="color:#22c55e;">
+                ✅ Import thành công ${data.dem} công việc!
+            </span>`;
+            hienThongBao("📂 Import xong", `Đã thêm ${data.dem} công việc từ file`, "thanh-cong");
+
+            // Reload bảng sau 1 giây
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            ketQua.innerHTML = `<span style="color:#ef4444;">❌ Lỗi: ${data.loi}</span>`;
+        }
+    } catch (e) {
+        ketQua.innerHTML = '<span style="color:#ef4444;">❌ Không thể kết nối server</span>';
+    }
+}
 </script>
 </body>
 </html>
