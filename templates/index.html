@@ -12,7 +12,6 @@
         <h1>WorkDash</h1>
         <p>Tổng quan công việc</p>
     </div>
-    <!-- Trạng thái kết nối real-time -->
     <div class="realtime-status">
         <span class="dot" id="dot"></span>
         <span id="trang-thai-ket-noi">Đang kết nối...</span>
@@ -20,7 +19,7 @@
     </div>
 </div>
 
-<!-- 4 Metric Cards — thêm id để JavaScript cập nhật -->
+<!-- 4 Metric Cards -->
 <div class="metric-grid">
     <div class="card">
         <p class="label">Tổng công việc</p>
@@ -38,6 +37,23 @@
         <p class="label">Tồn đọng</p>
         <p class="value red" id="so-ton-dong">{{ ton_dong }}</p>
     </div>
+</div>
+
+<!-- Biểu đồ real-time -->
+<div class="bieu-do-grid">
+
+    <!-- Biểu đồ cột: công việc theo người -->
+    <div class="table-wrap">
+        <h2>Công việc theo người phụ trách</h2>
+        <canvas id="bieu-do-nguoi" height="120"></canvas>
+    </div>
+
+    <!-- Biểu đồ tròn: tỉ lệ trạng thái -->
+    <div class="table-wrap">
+        <h2>Tỉ lệ trạng thái</h2>
+        <canvas id="bieu-do-tron" height="120"></canvas>
+    </div>
+
 </div>
 
 <!-- Form thêm công việc -->
@@ -108,8 +124,84 @@
     </p>
 </div>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// ---- SSE: Lắng nghe dữ liệu real-time từ server ----
+
+// ---- Khởi tạo biểu đồ cột ----
+const ctxNguoi = document.getElementById("bieu-do-nguoi").getContext("2d");
+const bieuDoNguoi = new Chart(ctxNguoi, {
+    type: "bar",
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: "Hoàn thành",
+                data: [],
+                backgroundColor: "#22c55e",
+                borderRadius: 6
+            },
+            {
+                label: "Đang làm",
+                data: [],
+                backgroundColor: "#3b82f6",
+                borderRadius: 6
+            },
+            {
+                label: "Tồn đọng",
+                data: [],
+                backgroundColor: "#f87171",
+                borderRadius: 6
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: "top" } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: "#f0f0f0" } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+// ---- Khởi tạo biểu đồ tròn ----
+const ctxTron = document.getElementById("bieu-do-tron").getContext("2d");
+const bieuDoTron = new Chart(ctxTron, {
+    type: "doughnut",
+    data: {
+        labels: ["Hoàn thành", "Đang làm", "Tồn đọng"],
+        datasets: [{
+            data: [0, 0, 0],
+            backgroundColor: ["#22c55e", "#3b82f6", "#f87171"],
+            borderWidth: 2,
+            borderColor: "#ffffff"
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: "bottom" }
+        }
+    }
+});
+
+// ---- Hàm cập nhật biểu đồ từ dữ liệu SSE ----
+function capNhatBieuDo(bieu_do, tong, hoan_thanh, dang_lam, ton_dong) {
+
+    // Cập nhật biểu đồ cột
+    bieuDoNguoi.data.labels              = bieu_do.nhan;
+    bieuDoNguoi.data.datasets[0].data    = bieu_do.hoan_thanh;
+    bieuDoNguoi.data.datasets[1].data    = bieu_do.dang_lam;
+    bieuDoNguoi.data.datasets[2].data    = bieu_do.ton_dong;
+    bieuDoNguoi.update("active");        // "active" = animation mượt
+
+    // Cập nhật biểu đồ tròn
+    bieuDoTron.data.datasets[0].data = [hoan_thanh, dang_lam, ton_dong];
+    bieuDoTron.update("active");
+}
+
+// ---- SSE: Lắng nghe dữ liệu từ server ----
 const eventSource = new EventSource("/stream");
 
 eventSource.onopen = function () {
@@ -121,13 +213,20 @@ eventSource.onmessage = function (event) {
     const data = JSON.parse(event.data);
 
     // Cập nhật 4 số metric
-    document.getElementById("so-tong").textContent        = data.tong;
-    document.getElementById("so-hoan-thanh").textContent  = data.hoan_thanh;
-    document.getElementById("so-dang-lam").textContent    = data.dang_lam;
-    document.getElementById("so-ton-dong").textContent    = data.ton_dong;
+    document.getElementById("so-tong").textContent       = data.tong;
+    document.getElementById("so-hoan-thanh").textContent = data.hoan_thanh;
+    document.getElementById("so-dang-lam").textContent   = data.dang_lam;
+    document.getElementById("so-ton-dong").textContent   = data.ton_dong;
+    document.getElementById("cap-nhat-luc").textContent  = "Cập nhật lúc " + data.thoi_gian;
 
-    // Cập nhật thời gian cập nhật cuối
-    document.getElementById("cap-nhat-luc").textContent = "Cập nhật lúc " + data.thoi_gian;
+    // Cập nhật 2 biểu đồ
+    capNhatBieuDo(
+        data.bieu_do,
+        data.tong,
+        data.hoan_thanh,
+        data.dang_lam,
+        data.ton_dong
+    );
 };
 
 eventSource.onerror = function () {
@@ -165,14 +264,12 @@ function hienThiBang(ds) {
     const bang     = document.getElementById("bang-cong-viec");
     const thongBao = document.getElementById("khong-co-ket-qua");
     const soKetQua = document.getElementById("so-ket-qua");
-
     if (ds.length === 0) {
-        bang.innerHTML          = "";
-        thongBao.style.display  = "block";
-        soKetQua.textContent    = "";
+        bang.innerHTML         = "";
+        thongBao.style.display = "block";
+        soKetQua.textContent   = "";
         return;
     }
-
     thongBao.style.display = "none";
     soKetQua.textContent   = "(" + ds.length + " kết quả)";
     bang.innerHTML = ds.map(function (cv) {

@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -49,11 +49,9 @@ def them_cong_viec():
     ten        = request.form.get("ten")
     nguoi      = request.form.get("nguoi")
     trang_thai = request.form.get("trang_thai")
-
     cong_viec_moi = CongViec(ten=ten, nguoi=nguoi, trang_thai=trang_thai)
     db.session.add(cong_viec_moi)
     db.session.commit()
-
     return redirect(url_for("trang_chu"))
 # Route xóa công việc
 @app.route("/xoa/<int:id>", methods=["POST"])
@@ -107,17 +105,36 @@ def tao_du_lieu_realtime():
     while True:
         with app.app_context():
             ds = CongViec.query.all()
+            # Đếm theo từng người phụ trách
+            nguoi_dict = {}
+            for cv in ds:
+                if cv.nguoi not in  nguoi_dict:
+                    nguoi_dict[cv.nguoi] = {"hoan_thanh": 0, "dang_lam": 0,"ton_dong": 0}
+                if cv.trang_thai == "Xong":
+                    nguoi_dict[cv.nguoi]["hoan_thanh"] += 1
+                elif cv.trang_thai == "Đang làm":
+                    nguoi_dict[cv.nguoi]["dang_lam"] += 1
+                else:
+                    nguoi_dict[cv.nguoi]["ton_dong"] += 1
             du_lieu = {
+                # Metric cards
                 "tong":       len(ds),
                 "hoan_thanh": len([cv for cv in ds if cv.trang_thai == "Xong"]),
                 "dang_lam":   len([cv for cv in ds if cv.trang_thai == "Đang làm"]),
                 "ton_dong":   len([cv for cv in ds if cv.trang_thai == "Chưa bắt đầu"]),
-                "thoi_gian":  time.strftime("%H:%M:%S")
-            }
-        # Định dạng SSE bắt buộc: "data: {...}\n\n"
-        yield f"data: {json.dumps(du_lieu)}\n\n"
-        time.sleep(5)
+                "thoi_gian":  time.strftime("%H:%M:%S"),
 
+                # Dữ liệu biểu đồ theo người phụ trách
+                "bieu_do": {
+                    "nhan": list(nguoi_dict.keys()),
+                    "hoan_thanh": [v["hoan_thanh"] for v in nguoi_dict.values()],
+                    "dang_lam":   [v["dang_lam"]   for v in nguoi_dict.values()],
+                    "ton_dong":   [v["ton_dong"]    for v in nguoi_dict.values()], 
+               }
+            }
+        yield f"data: {json.dumps(du_lieu, ensure_ascii=False)}\n\n"
+        time.sleep(5)
+        
 @app.route("/stream")
 def stream():
     return Response(

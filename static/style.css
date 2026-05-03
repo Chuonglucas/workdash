@@ -258,3 +258,10 @@ th {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.4; }
 }
+/* Lưới 2 biểu đồ cạnh nhau */
+.bieu-do-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
