@@ -7,19 +7,31 @@
 </head>
 <body>
 
+<!-- Vùng hiển thị thông báo popup -->
+<div class="thong-bao-wrap" id="thong-bao-wrap"></div>
+
 <div class="header">
     <div>
         <h1>WorkDash</h1>
         <p>Tổng quan công việc</p>
     </div>
+
+    <!-- Đồng hồ thật -->
+    <div style="text-align: center;">
+        <div class="dong-ho" id="dong-ho">00:00:00</div>
+        <div class="ngay-thang" id="ngay-thang"></div>
+    </div>
+
+    <!-- Trạng thái kết nối -->
     <div class="realtime-status">
         <span class="dot" id="dot"></span>
         <span id="trang-thai-ket-noi">Đang kết nối...</span>
+        <br>
         <span id="cap-nhat-luc" style="color:#9ca3af; font-size:12px;"></span>
     </div>
 </div>
 
-<!-- 4 Metric Cards -->
+<!-- 4 Metric Cards + Thanh tiến độ -->
 <div class="metric-grid">
     <div class="card">
         <p class="label">Tổng công việc</p>
@@ -39,21 +51,29 @@
     </div>
 </div>
 
+<!-- Thanh tiến độ tổng -->
+<div class="table-wrap" style="margin-bottom: 24px;">
+    <div class="tien-do-wrap">
+        <div class="tien-do-label">
+            <span>Tiến độ tổng thể</span>
+            <span id="phan-tram">0%</span>
+        </div>
+        <div class="tien-do-track">
+            <div class="tien-do-fill" id="tien-do-fill" style="width: 0%"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Biểu đồ real-time -->
 <div class="bieu-do-grid">
-
-    <!-- Biểu đồ cột: công việc theo người -->
     <div class="table-wrap">
         <h2>Công việc theo người phụ trách</h2>
         <canvas id="bieu-do-nguoi" height="120"></canvas>
     </div>
-
-    <!-- Biểu đồ tròn: tỉ lệ trạng thái -->
     <div class="table-wrap">
         <h2>Tỉ lệ trạng thái</h2>
         <canvas id="bieu-do-tron" height="120"></canvas>
     </div>
-
 </div>
 
 <!-- Form thêm công việc -->
@@ -124,35 +144,69 @@
     </p>
 </div>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 
-// ---- Khởi tạo biểu đồ cột ----
-const ctxNguoi = document.getElementById("bieu-do-nguoi").getContext("2d");
+// =============================================
+// ĐỒNG HỒ THẬT — chạy mỗi giây
+// =============================================
+function capNhatDongHo() {
+    const now    = new Date();
+    const gio    = String(now.getHours()).padStart(2, "0");
+    const phut   = String(now.getMinutes()).padStart(2, "0");
+    const giay   = String(now.getSeconds()).padStart(2, "0");
+    const ngay   = now.toLocaleDateString("vi-VN", {
+        weekday: "long", year: "numeric",
+        month: "long", day: "numeric"
+    });
+
+    document.getElementById("dong-ho").textContent  = `${gio}:${phut}:${giay}`;
+    document.getElementById("ngay-thang").textContent = ngay;
+}
+capNhatDongHo();
+setInterval(capNhatDongHo, 1000);   // chạy mỗi 1 giây
+
+
+// =============================================
+// THÔNG BÁO POPUP
+// =============================================
+function hienThongBao(tieu_de, noi_dung, loai = "") {
+    const wrap = document.getElementById("thong-bao-wrap");
+    const tb   = document.createElement("div");
+    tb.className     = "thong-bao " + loai;
+    tb.innerHTML     = `
+        <div class="thong-bao-title">${tieu_de}</div>
+        <div>${noi_dung}</div>
+    `;
+    wrap.appendChild(tb);
+
+    // Tự xóa sau 4 giây
+    setTimeout(() => tb.remove(), 4000);
+}
+
+
+// =============================================
+// THANH TIẾN ĐỘ
+// =============================================
+function capNhatTienDo(hoan_thanh, tong) {
+    const phan_tram = tong > 0 ? Math.round((hoan_thanh / tong) * 100) : 0;
+    document.getElementById("tien-do-fill").style.width = phan_tram + "%";
+    document.getElementById("phan-tram").textContent    = phan_tram + "%";
+}
+
+
+// =============================================
+// BIỂU ĐỒ
+// =============================================
+const ctxNguoi    = document.getElementById("bieu-do-nguoi").getContext("2d");
 const bieuDoNguoi = new Chart(ctxNguoi, {
     type: "bar",
     data: {
         labels: [],
         datasets: [
-            {
-                label: "Hoàn thành",
-                data: [],
-                backgroundColor: "#22c55e",
-                borderRadius: 6
-            },
-            {
-                label: "Đang làm",
-                data: [],
-                backgroundColor: "#3b82f6",
-                borderRadius: 6
-            },
-            {
-                label: "Tồn đọng",
-                data: [],
-                backgroundColor: "#f87171",
-                borderRadius: 6
-            }
+            { label: "Hoàn thành", data: [], backgroundColor: "#22c55e", borderRadius: 6 },
+            { label: "Đang làm",   data: [], backgroundColor: "#3b82f6", borderRadius: 6 },
+            { label: "Tồn đọng",  data: [], backgroundColor: "#f87171", borderRadius: 6 }
         ]
     },
     options: {
@@ -165,8 +219,7 @@ const bieuDoNguoi = new Chart(ctxNguoi, {
     }
 });
 
-// ---- Khởi tạo biểu đồ tròn ----
-const ctxTron = document.getElementById("bieu-do-tron").getContext("2d");
+const ctxTron    = document.getElementById("bieu-do-tron").getContext("2d");
 const bieuDoTron = new Chart(ctxTron, {
     type: "doughnut",
     data: {
@@ -180,61 +233,98 @@ const bieuDoTron = new Chart(ctxTron, {
     },
     options: {
         responsive: true,
-        plugins: {
-            legend: { position: "bottom" }
-        }
+        plugins: { legend: { position: "bottom" } }
     }
 });
 
-// ---- Hàm cập nhật biểu đồ từ dữ liệu SSE ----
-function capNhatBieuDo(bieu_do, tong, hoan_thanh, dang_lam, ton_dong) {
+function capNhatBieuDo(bieu_do, hoan_thanh, dang_lam, ton_dong) {
+    bieuDoNguoi.data.labels           = bieu_do.nhan;
+    bieuDoNguoi.data.datasets[0].data = bieu_do.hoan_thanh;
+    bieuDoNguoi.data.datasets[1].data = bieu_do.dang_lam;
+    bieuDoNguoi.data.datasets[2].data = bieu_do.ton_dong;
+    bieuDoNguoi.update("active");
 
-    // Cập nhật biểu đồ cột
-    bieuDoNguoi.data.labels              = bieu_do.nhan;
-    bieuDoNguoi.data.datasets[0].data    = bieu_do.hoan_thanh;
-    bieuDoNguoi.data.datasets[1].data    = bieu_do.dang_lam;
-    bieuDoNguoi.data.datasets[2].data    = bieu_do.ton_dong;
-    bieuDoNguoi.update("active");        // "active" = animation mượt
-
-    // Cập nhật biểu đồ tròn
     bieuDoTron.data.datasets[0].data = [hoan_thanh, dang_lam, ton_dong];
     bieuDoTron.update("active");
 }
 
-// ---- SSE: Lắng nghe dữ liệu từ server ----
+
+// =============================================
+// SSE — NHẬN DỮ LIỆU REAL-TIME
+// =============================================
+let so_cu = { tong: -1, hoan_thanh: -1, dang_lam: -1, ton_dong: -1 };
+
 const eventSource = new EventSource("/stream");
 
 eventSource.onopen = function () {
     document.getElementById("dot").classList.add("online");
     document.getElementById("trang-thai-ket-noi").textContent = "Real-time";
+    hienThongBao("✅ Đã kết nối", "Dashboard đang nhận dữ liệu real-time", "thanh-cong");
 };
 
 eventSource.onmessage = function (event) {
     const data = JSON.parse(event.data);
 
-    // Cập nhật 4 số metric
+    // Cập nhật metric cards
     document.getElementById("so-tong").textContent       = data.tong;
     document.getElementById("so-hoan-thanh").textContent = data.hoan_thanh;
     document.getElementById("so-dang-lam").textContent   = data.dang_lam;
     document.getElementById("so-ton-dong").textContent   = data.ton_dong;
     document.getElementById("cap-nhat-luc").textContent  = "Cập nhật lúc " + data.thoi_gian;
 
-    // Cập nhật 2 biểu đồ
-    capNhatBieuDo(
-        data.bieu_do,
-        data.tong,
-        data.hoan_thanh,
-        data.dang_lam,
-        data.ton_dong
-    );
+    // Cập nhật thanh tiến độ
+    capNhatTienDo(data.hoan_thanh, data.tong);
+
+    // Cập nhật biểu đồ
+    capNhatBieuDo(data.bieu_do, data.hoan_thanh, data.dang_lam, data.ton_dong);
+
+    // So sánh với lần trước — thông báo nếu có thay đổi
+    if (so_cu.tong !== -1) {
+        const them_moi = data.tong - so_cu.tong;
+        const them_xong = data.hoan_thanh - so_cu.hoan_thanh;
+
+        if (them_moi > 0) {
+            hienThongBao(
+                "📋 Công việc mới",
+                `Có ${them_moi} công việc vừa được thêm vào`,
+                "thanh-cong"
+            );
+        }
+        if (them_xong > 0) {
+            hienThongBao(
+                "🎉 Hoàn thành!",
+                `${them_xong} công việc vừa được đánh dấu xong`,
+                "thanh-cong"
+            );
+        }
+        if (data.ton_dong > so_cu.ton_dong) {
+            hienThongBao(
+                "⚠️ Tồn đọng tăng",
+                `Có ${data.ton_dong - so_cu.ton_dong} công việc chưa được xử lý`,
+                "canh-bao"
+            );
+        }
+    }
+
+    // Lưu lại để so sánh lần sau
+    so_cu = {
+        tong:       data.tong,
+        hoan_thanh: data.hoan_thanh,
+        dang_lam:   data.dang_lam,
+        ton_dong:   data.ton_dong
+    };
 };
 
 eventSource.onerror = function () {
     document.getElementById("dot").classList.remove("online");
     document.getElementById("trang-thai-ket-noi").textContent = "Mất kết nối";
+    hienThongBao("❌ Mất kết nối", "Đang thử kết nối lại...", "");
 };
 
-// ---- Tìm kiếm và lọc ----
+
+// =============================================
+// TÌM KIẾM VÀ LỌC
+// =============================================
 let tuKhoa    = "";
 let trangThai = "";
 
@@ -303,7 +393,7 @@ async function xoaCongViec(id) {
     const data = await res.json();
     if (data.ok) { location.reload(); }
 }
-</script>
 
+</script>
 </body>
 </html>
