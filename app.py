@@ -176,7 +176,74 @@ def upload_file():
     except Exception as e:
         return jsonify({"ok": False, "loi": str(e)})
 
+# ---- ROUTE MỚI: Phân tích dữ liệu ----
+@app.route("/phan-tich")
+def phan_tich():
+    ds = CongViec.query.all()
 
+    if not ds:
+        return jsonify({"ok": False, "loi": "Chưa có dữ liệu"})
+
+    # Chuyển sang DataFrame để phân tích
+    df = pd.DataFrame([{
+        "id":         cv.id,
+        "ten":        cv.ten,
+        "nguoi":      cv.nguoi,
+        "trang_thai": cv.trang_thai
+    } for cv in ds])
+
+    # 1. Hiệu suất theo người
+    hieu_suat = []
+    for nguoi, nhom in df.groupby("nguoi"):
+        tong_nguoi     = len(nhom)
+        xong_nguoi     = len(nhom[nhom["trang_thai"] == "Xong"])
+        ty_le          = round((xong_nguoi / tong_nguoi) * 100) if tong_nguoi > 0 else 0
+        hieu_suat.append({
+            "nguoi":      nguoi,
+            "tong":       tong_nguoi,
+            "hoan_thanh": xong_nguoi,
+            "ty_le":      ty_le
+        })
+
+    # Sắp xếp theo tỉ lệ hoàn thành giảm dần
+    hieu_suat.sort(key=lambda x: x["ty_le"], reverse=True)
+
+    # 2. Thống kê tổng
+    tong          = len(df)
+    hoan_thanh    = len(df[df["trang_thai"] == "Xong"])
+    dang_lam      = len(df[df["trang_thai"] == "Đang làm"])
+    ton_dong      = len(df[df["trang_thai"] == "Chưa bắt đầu"])
+    ty_le_chung   = round((hoan_thanh / tong) * 100) if tong > 0 else 0
+
+    # 3. Người làm nhiều nhất
+    nguoi_nhieu   = df.groupby("nguoi").size().idxmax()
+    so_nhieu      = df.groupby("nguoi").size().max()
+
+    # 4. Người hiệu quả nhất (tỉ lệ hoàn thành cao nhất, có ít nhất 1 công việc)
+    hieu_qua_nhat = hieu_suat[0] if hieu_suat else None
+
+    # 5. Cảnh báo tồn đọng nhiều
+    canh_bao = []
+    for nguoi, nhom in df.groupby("nguoi"):
+        ton = len(nhom[nhom["trang_thai"] == "Chưa bắt đầu"])
+        if ton >= 2:
+            canh_bao.append({"nguoi": nguoi, "so_ton_dong": ton})
+    canh_bao.sort(key=lambda x: x["so_ton_dong"], reverse=True)
+
+    return jsonify({
+        "ok": True,
+        "tong_quan": {
+            "tong":        tong,
+            "hoan_thanh":  hoan_thanh,
+            "dang_lam":    dang_lam,
+            "ton_dong":    ton_dong,
+            "ty_le_chung": ty_le_chung
+        },
+        "hieu_suat":      hieu_suat,
+        "nguoi_nhieu":    {"ten": nguoi_nhieu, "so": int(so_nhieu)},
+        "hieu_qua_nhat":  hieu_qua_nhat,
+        "canh_bao":       canh_bao
+    })
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
