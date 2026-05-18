@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>WorkDash — Đăng nhập</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1d4ed8;
+        }
+
+        .logo p {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        input:focus { border-color: #3b82f6; }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover { background: #1e40af; }
+
+        .loi {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #dc2626;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .tai-khoan-mau {
+            margin-top: 20px;
+            padding: 14px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #0369a1;
+        }
+
+        .tai-khoan-mau strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #0c4a6e;
+        }
+
+        .tai-khoan-mau span {
+            display: block;
+            margin: 3px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="login-box">
+    <div class="logo">
+        <h1>WorkDash</h1>
+        <p>Hệ thống quản lý công việc</p>
+    </div>
+
+    {% if loi %}
+    <div class="loi">⚠️ {{ loi }}</div>
+    {% endif %}
+
+    <form method="POST" action="/login">
+        <div class="form-group">
+            <label>Tên đăng nhập</label>
+            <input type="text" name="ten_dang_nhap"
+                   placeholder="Nhập tên đăng nhập..."
+                   autofocus required />
+        </div>
+        <div class="form-group">
+            <label>Mật khẩu</label>
+            <input type="password" name="mat_khau"
+                   placeholder="Nhập mật khẩu..." required />
+        </div>
+        <button type="submit" class="btn-login">Đăng nhập</button>
+    </form>
+
+    <div class="tai-khoan-mau">
+        <strong>🔑 Tài khoản mặc định để thử:</strong>
+        <span>👑 Admin: <b>admin</b> / <b>admin123</b></span>
+        <span>👤 User: <b>an</b> / <b>123456</b></span>
+        <span>👤 User: <b>binh</b> / <b>123456</b></span>
+    </div>
+</div>
+</body>
+</html>

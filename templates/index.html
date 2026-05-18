@@ -22,6 +22,27 @@
         <div class="ngay-thang" id="ngay-thang"></div>
     </div>
 
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+        <!-- Thông tin người dùng -->
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="text-align:right;">
+                <div style="font-size:14px; font-weight:600; color:#111827;">
+                    {{ current_user.ho_ten }}
+                </div>
+                <div style="font-size:12px; color:#9ca3af;">
+                    {% if current_user.vai_tro == "admin" %}
+                        👑 Quản trị viên
+                    {% else %}
+                        👤 Người dùng
+                    {% endif %}
+                    
+                    {% if current_user.vai_tro == "admin" %}
+                    <a href="/quan-ly" class="btn-quan-ly">👥 Quản lý tài khoản</a>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">Đăng xuất</a>
+        </div>
     <!-- Trạng thái kết nối -->
     <div class="realtime-status">
         <span class="dot" id="dot"></span>
@@ -99,6 +120,24 @@
         </button>
     </div>
     <div id="ket-qua-upload" style="margin-top:12px; font-size:13px;"></div>
+</div>
+<!-- Phân tích xu hướng -->
+<div class="table-wrap" style="margin-bottom: 24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>📊 Phân tích tự động</h2>
+        <button class="btn-phan-tich" onclick="chayPhanTich()">
+            🔍 Phân tích ngay
+        </button>
+        <button class="btn-xuat-pdf" onclick="xuatPDF()">
+            📄 Xuất PDF
+        </button>
+    </div>
+
+    <div id="ket-qua-phan-tich" style="margin-top: 16px;">
+        <p style="color:#9ca3af; font-size:13px;">
+            Bấm "Phân tích ngay" để xem báo cáo tự động
+        </p>
+    </div>
 </div>
 <!-- Form thêm công việc -->
 <div class="table-wrap" style="margin-bottom: 24px;">
@@ -462,6 +501,154 @@ async function importFile() {
         ketQua.innerHTML = '<span style="color:#ef4444;">❌ Không thể kết nối server</span>';
     }
 }
+// =============================================
+// PHÂN TÍCH DỮ LIỆU TỰ ĐỘNG
+// =============================================
+async function chayPhanTich() {
+    const vung = document.getElementById("ket-qua-phan-tich");
+    vung.innerHTML = '<p style="color:#3b82f6; font-size:13px;">⏳ Đang phân tích...</p>';
+
+    try {
+        const res  = await fetch("/phan-tich");
+        const data = await res.json();
+
+        if (!data.ok) {
+            vung.innerHTML = `<p style="color:#ef4444;">${data.loi}</p>`;
+            return;
+        }
+
+        const tq = data.tong_quan;
+        const hs = data.hieu_suat;
+        const hq = data.hieu_qua_nhat;
+        const cb = data.canh_bao;
+
+        // Vẽ bảng hiệu suất từng người
+        const bangHieuSuat = hs.map(function(h) {
+            const mau = h.ty_le >= 70 ? "#22c55e"
+                      : h.ty_le >= 40 ? "#f59e0b"
+                      : "#ef4444";
+            return `
+                <tr>
+                    <td><strong>${h.nguoi}</strong></td>
+                    <td style="text-align:center;">${h.tong}</td>
+                    <td style="text-align:center;">${h.hoan_thanh}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="flex:1; height:8px; background:#f3f4f6;
+                                        border-radius:99px; overflow:hidden;">
+                                <div style="width:${h.ty_le}%; height:100%;
+                                            background:${mau}; border-radius:99px;">
+                                </div>
+                            </div>
+                            <span style="font-size:12px; color:${mau};
+                                         font-weight:600; width:36px;">
+                                ${h.ty_le}%
+                            </span>
+                        </div>
+                    </td>
+                </tr>`;
+        }).join("");
+
+        // Vẽ cảnh báo tồn đọng
+        const bangCanhBao = cb.length > 0
+            ? cb.map(c => `
+                <div class="canh-bao-item">
+                    ⚠️ <strong>${c.nguoi}</strong> đang tồn đọng
+                    <span class="badge-so">${c.so_ton_dong}</span> công việc chưa bắt đầu
+                </div>`).join("")
+            : '<div style="color:#22c55e; font-size:13px;">✅ Không có tồn đọng đáng lo ngại</div>';
+
+        vung.innerHTML = `
+            <!-- Tổng quan nhanh -->
+            <div class="phan-tich-grid">
+                <div class="pt-card">
+                    <div class="pt-icon">🏆</div>
+                    <div class="pt-noi-dung">
+                        <div class="pt-tieu-de">Hiệu quả nhất</div>
+                        <div class="pt-gia-tri">
+                            ${hq ? hq.nguoi + " (" + hq.ty_le + "%)" : "Chưa có"}
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-card">
+                    <div class="pt-icon">💪</div>
+                    <div class="pt-noi-dung">
+                        <div class="pt-tieu-de">Làm nhiều nhất</div>
+                        <div class="pt-gia-tri">
+                            ${data.nguoi_nhieu.ten} (${data.nguoi_nhieu.so} việc)
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-card">
+                    <div class="pt-icon">📈</div>
+                    <div class="pt-noi-dung">
+                        <div class="pt-tieu-de">Tỉ lệ hoàn thành</div>
+                        <div class="pt-gia-tri">${tq.ty_le_chung}%</div>
+                    </div>
+                </div>
+                <div class="pt-card">
+                    <div class="pt-icon">📋</div>
+                    <div class="pt-noi-dung">
+                        <div class="pt-tieu-de">Tổng công việc</div>
+                        <div class="pt-gia-tri">${tq.tong}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng hiệu suất -->
+            <h3 style="font-size:14px; margin: 16px 0 10px; color:#374151;">
+                Hiệu suất từng người
+            </h3>
+            <table class="tbl-pt">
+                <thead>
+                    <tr>
+                        <th>Người phụ trách</th>
+                        <th style="text-align:center;">Tổng</th>
+                        <th style="text-align:center;">Xong</th>
+                        <th>Tỉ lệ</th>
+                    </tr>
+                </thead>
+                <tbody>${bangHieuSuat}</tbody>
+            </table>
+
+            <!-- Cảnh báo -->
+            <h3 style="font-size:14px; margin: 16px 0 10px; color:#374151;">
+                Cảnh báo tồn đọng
+            </h3>
+            <div class="canh-bao-wrap">${bangCanhBao}</div>
+        `;
+
+    } catch(e) {
+        vung.innerHTML = '<p style="color:#ef4444;">❌ Lỗi kết nối server</p>';
+    }
+}
+// =============================================
+// XUẤT PDF
+// =============================================
+function xuatPDF() {
+    hienThongBao("📄 Đang tạo PDF", "Vui lòng chờ trong giây lát...", "");
+    window.location.href = "/xuat-pdf";
+}
+
 </script>
 </body>
 </html>
+<header>
+  <nav>
+    <a href="index.html">Trang chủ</a>
+    <a href="about.html">Giới thiệu</a>
+    <!-- Link chỉ dành cho admin -->
+    <span id="admin-link" style="display:none;">
+      <a href="account.html">Quản lý tài khoản</a>
+    </span>
+  </nav>
+</header>
+
+<script>
+  // Giả sử bạn có biến userRole lấy từ backend hoặc session
+  const userRole = "admin"; // hoặc "user"
+
+  if (userRole === "admin") {
+    document.getElementById("admin-link").style.display = "inline";
+  }
+</script>

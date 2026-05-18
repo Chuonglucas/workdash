@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>WorkDash — Quản lý tài khoản</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .ql-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .ql-header h1 { font-size: 22px; font-weight: 600; }
+        .ql-header p  { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+
+        .ql-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .form-ql input,
+        .form-ql select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        .form-ql input:focus,
+        .form-ql select:focus { border-color: #3b82f6; }
+
+        .form-ql label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .btn-tao {
+            width: 100%;
+            padding: 10px;
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-tao:hover { background: #1e40af; }
+
+        .badge-admin {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-user {
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-doi-quyen  { background: #fef3c7; color: #92400e; }
+        .btn-doi-mk     { background: #eff6ff;  color: #1d4ed8; }
+        .btn-xoa-nd     { background: #fef2f2;  color: #dc2626; }
+
+        .btn-doi-quyen:hover { background: #fde68a; }
+        .btn-doi-mk:hover    { background: #dbeafe; }
+        .btn-xoa-nd:hover    { background: #fee2e2; }
+
+        .thong-bao-ql {
+            margin-top: 12px;
+            font-size: 13px;
+            min-height: 20px;
+        }
+
+        /* Modal đổi mật khẩu */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.hien { display: flex; }
+
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            width: 360px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+
+        .modal-box h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        .modal-box input:focus { border-color: #3b82f6; }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        .btn-huy {
+            padding: 8px 18px;
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-luu {
+            padding: 8px 18px;
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body style="background:#f4f6f9; padding:24px;">
+
+<!-- Modal đổi mật khẩu -->
+<div class="modal-overlay" id="modal-mk">
+    <div class="modal-box">
+        <h3>🔑 Đổi mật khẩu</h3>
+        <input type="hidden" id="modal-id" />
+        <input type="password" id="modal-mk-moi"
+               placeholder="Mật khẩu mới (ít nhất 6 ký tự)..." />
+        <div id="modal-loi" style="color:#dc2626; font-size:13px; min-height:16px;"></div>
+        <div class="modal-footer">
+            <button class="btn-huy" onclick="dongModal()">Hủy</button>
+            <button class="btn-luu" onclick="luuMatKhau()">Lưu mật khẩu</button>
+        </div>
+    </div>
+</div>
+
+<div class="ql-header">
+    <div>
+        <h1>👥 Quản lý tài khoản</h1>
+        <p>Tạo, phân quyền và quản lý người dùng WorkDash</p>
+    </div>
+    <a href="/" style="font-size:13px; color:#3b82f6; text-decoration:none;">
+        ← Về Dashboard
+    </a>
+</div>
+
+<div class="ql-grid">
+
+    <!-- Form tạo tài khoản mới -->
+    <div class="table-wrap">
+        <h2 style="font-size:15px; margin-bottom:16px;">➕ Tạo tài khoản mới</h2>
+        <div class="form-ql">
+            <label>Tên đăng nhập</label>
+            <input type="text" id="new-ten-dn" placeholder="vd: nguyenvan" />
+
+            <label>Họ tên</label>
+            <input type="text" id="new-ho-ten" placeholder="vd: Nguyễn Văn A" />
+
+            <label>Mật khẩu</label>
+            <input type="password" id="new-mat-khau" placeholder="Ít nhất 6 ký tự" />
+
+            <label>Vai trò</label>
+            <select id="new-vai-tro">
+                <option value="user">👤 Người dùng</option>
+                <option value="admin">👑 Quản trị viên</option>
+            </select>
+
+            <button class="btn-tao" onclick="taoTaiKhoan()">
+                ➕ Tạo tài khoản
+            </button>
+            <div class="thong-bao-ql" id="tb-tao"></div>
+        </div>
+    </div>
+
+    <!-- Bảng danh sách tài khoản -->
+    <div class="table-wrap">
+        <h2 style="font-size:15px; margin-bottom:16px;">
+            📋 Danh sách tài khoản
+            <span style="font-weight:400; color:#9ca3af; font-size:13px;">
+                ({{ ds_nguoi_dung|length }} người dùng)
+            </span>
+        </h2>
+        <table id="bang-nguoi-dung">
+            <thead>
+                <tr>
+                    <th>Họ tên</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Vai trò</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for nd in ds_nguoi_dung %}
+                <tr id="hang-nd-{{ nd.id }}">
+                    <td><strong>{{ nd.ho_ten }}</strong></td>
+                    <td style="color:#6b7280;">{{ nd.ten_dang_nhap }}</td>
+                    <td>
+                        <span id="badge-{{ nd.id }}"
+                              class="badge-{{ nd.vai_tro }}">
+                            {% if nd.vai_tro == "admin" %}👑 Admin
+                            {% else %}👤 User{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-group">
+                            {% if nd.ten_dang_nhap != "admin" %}
+                            <button class="btn-sm btn-doi-quyen"
+                                    onclick="doiVaiTro({{ nd.id }})">
+                                🔄 Đổi quyền
+                            </button>
+                            {% endif %}
+                            <button class="btn-sm btn-doi-mk"
+                                    onclick="moModalMK({{ nd.id }}, '{{ nd.ho_ten }}')">
+                                🔑 Đổi MK
+                            </button>
+                            {% if nd.ten_dang_nhap != "admin" %}
+                            <button class="btn-sm btn-xoa-nd"
+                                    onclick="xoaNguoiDung({{ nd.id }}, '{{ nd.ho_ten }}')">
+                                🗑 Xóa
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+// =============================================
+// TẠO TÀI KHOẢN MỚI
+// =============================================
+async function taoTaiKhoan() {
+    const tenDN  = document.getElementById("new-ten-dn").value.trim();
+    const hoTen  = document.getElementById("new-ho-ten").value.trim();
+    const mk     = document.getElementById("new-mat-khau").value.trim();
+    const vaiTro = document.getElementById("new-vai-tro").value;
+    const tb     = document.getElementById("tb-tao");
+
+    if (!tenDN || !hoTen || !mk) {
+        tb.innerHTML = '<span style="color:#ef4444;">⚠️ Vui lòng điền đầy đủ</span>';
+        return;
+    }
+
+    tb.innerHTML = '<span style="color:#3b82f6;">⏳ Đang tạo...</span>';
+
+    const form = new FormData();
+    form.append("ten_dang_nhap", tenDN);
+    form.append("ho_ten", hoTen);
+    form.append("mat_khau", mk);
+    form.append("vai_tro", vaiTro);
+
+    const res  = await fetch("/them-nguoi-dung", { method: "POST", body: form });
+    const data = await res.json();
+
+    if (data.ok) {
+        tb.innerHTML = `<span style="color:#22c55e;">
+            ✅ Tạo thành công tài khoản "${hoTen}"
+        </span>`;
+
+        // Thêm hàng mới vào bảng
+        const tbody  = document.querySelector("#bang-nguoi-dung tbody");
+        const badge  = data.vai_tro === "admin"
+                     ? 'badge-admin">👑 Admin'
+                     : 'badge-user">👤 User';
+        tbody.innerHTML += `
+            <tr id="hang-nd-${data.id}">
+                <td><strong>${hoTen}</strong></td>
+                <td style="color:#6b7280;">${tenDN}</td>
+                <td><span id="badge-${data.id}" class="${badge}</span></td>
+                <td>
+                    <div class="action-group">
+                        <button class="btn-sm btn-doi-quyen"
+                                onclick="doiVaiTro(${data.id})">
+                            🔄 Đổi quyền
+                        </button>
+                        <button class="btn-sm btn-doi-mk"
+                                onclick="moModalMK(${data.id}, '${hoTen}')">
+                            🔑 Đổi MK
+                        </button>
+                        <button class="btn-sm btn-xoa-nd"
+                                onclick="xoaNguoiDung(${data.id}, '${hoTen}')">
+                            🗑 Xóa
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+
+        // Reset form
+        document.getElementById("new-ten-dn").value    = "";
+        document.getElementById("new-ho-ten").value    = "";
+        document.getElementById("new-mat-khau").value  = "";
+    } else {
+        tb.innerHTML = `<span style="color:#ef4444;">❌ ${data.loi}</span>`;
+    }
+}
+
+// =============================================
+// ĐỔI VAI TRÒ
+// =============================================
+async function doiVaiTro(id) {
+    const res  = await fetch("/doi-vai-tro/" + id, { method: "POST" });
+    const data = await res.json();
+
+    if (data.ok) {
+        const badge = document.getElementById("badge-" + id);
+        if (data.vai_tro_moi === "admin") {
+            badge.className   = "badge-admin";
+            badge.textContent = "👑 Admin";
+        } else {
+            badge.className   = "badge-user";
+            badge.textContent = "👤 User";
+        }
+    } else {
+        alert(data.loi);
+    }
+}
+
+// =============================================
+// XÓA NGƯỜI DÙNG
+// =============================================
+async function xoaNguoiDung(id, ten) {
+    if (!confirm(`Bạn chắc muốn xóa tài khoản "${ten}"?\nToàn bộ công việc của họ cũng bị xóa.`))
+        return;
+
+    const res  = await fetch("/xoa-nguoi-dung/" + id, { method: "POST" });
+    const data = await res.json();
+
+    if (data.ok) {
+        document.getElementById("hang-nd-" + id).remove();
+    } else {
+        alert(data.loi);
+    }
+}
+
+// =============================================
+// MODAL ĐỔI MẬT KHẨU
+// =============================================
+function moModalMK(id, ten) {
+    document.getElementById("modal-id").value   = id;
+    document.getElementById("modal-mk-moi").value = "";
+    document.getElementById("modal-loi").textContent = "";
+    document.getElementById("modal-mk").classList.add("hien");
+    document.querySelector(".modal-box h3").textContent =
+        `🔑 Đổi mật khẩu — ${ten}`;
+    document.getElementById("modal-mk-moi").focus();
+}
+
+function dongModal() {
+    document.getElementById("modal-mk").classList.remove("hien");
+}
+
+async function luuMatKhau() {
+    const id    = document.getElementById("modal-id").value;
+    const mkMoi = document.getElementById("modal-mk-moi").value.trim();
+    const loi   = document.getElementById("modal-loi");
+
+    if (mkMoi.length < 6) {
+        loi.textContent = "⚠️ Mật khẩu phải có ít nhất 6 ký tự";
+        return;
+    }
+
+    const form = new FormData();
+    form.append("mat_khau_moi", mkMoi);
+
+    const res  = await fetch("/doi-mat-khau/" + id, { method: "POST", body: form });
+    const data = await res.json();
+
+    if (data.ok) {
+        dongModal();
+    } else {
+        loi.textContent = "❌ " + data.loi;
+    }
+}
+
+// Nhấn Escape để đóng modal
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") dongModal();
+});
+</script>
+</body>
+</html>
